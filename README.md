@@ -163,7 +163,8 @@ npm start
 
 ## 🧑‍💻 Author
 
-**Biswa Ranjan Behera**  
+**Biswa Ranjan Behera**
+**  
 🚀 Full Stack Developer | MERN Enthusiast  
 📧 [biswa.dev@example.com](mailto:biswa.dev@example.com)
 
