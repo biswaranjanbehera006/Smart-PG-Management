@@ -1,11 +1,44 @@
 import express from "express";
-const router = express.Router();
-import { createBooking, getMyBookings, getAllBookings, cancelBooking } from "../controllers/bookingController.js";
-import { protect } from "../middleware/authMiddleware.js";
+import {
+  createBooking,
+  getMyBookings,
+  getAllBookings,
+  cancelBooking,
+   downloadInvoice,
+} from "../controllers/bookingController.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 
+const router = express.Router();
+
+/* ===========================
+   🧾 Booking Routes
+   Base URL: /api/bookings
+   =========================== */
+
+// 📌 @route   POST /api/bookings
+// 👤 @access  Private (Tenant)
+// 📝 Create a new booking
 router.post("/", protect, createBooking);
+
+// 📌 @route   GET /api/bookings/my
+// 👤 @access  Private (Tenant)
+// 📝 Get all bookings for the logged-in user
 router.get("/my", protect, getMyBookings);
-router.get("/all", protect, getAllBookings);
+
+// 📌 @route   GET /api/bookings/all
+// 👤 @access  Private (Admin Only)
+// 📝 Get all bookings in the system
+router.get("/all", protect, admin, getAllBookings);
+
+// 📌 @route   PUT /api/bookings/:id/cancel
+// 👤 @access  Private (Tenant/Admin)
+// 📝 Cancel an existing booking
 router.put("/:id/cancel", protect, cancelBooking);
+
+
+
+
+// 🧾 New route for downloading invoice
+router.get("/:id/invoice", protect, downloadInvoice);
 
 export default router;

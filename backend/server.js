@@ -9,6 +9,7 @@ import authRoutes from "./routes/authRoutes.js";
 import pgRoutes from "./routes/pgRoutes.js";
 import bookingRoutes from "./routes/bookingRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 // Import Error Middleware
 import { errorHandler } from "./middleware/errorMiddleware.js";
@@ -32,6 +33,7 @@ app.use("/api/auth", authRoutes);        // Login, Register, Profile
 app.use("/api/pg", pgRoutes);            // PG CRUD
 app.use("/api/bookings", bookingRoutes); // Booking management
 app.use("/api/payments", paymentRoutes); // Payment routes
+app.use("/api/admin", adminRoutes);      //admin routes
 
 // ====== Root Route ======
 app.get("/", (req, res) => {
