@@ -2,6 +2,14 @@ import User from "../models/User.js";
 import generateToken from "../utils/generateToken.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import crypto from "crypto";
+import cloudinary from "cloudinary";
+
+// 🌥️ Configure Cloudinary
+cloudinary.v2.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 // 📝 Register new user
 export const register = async (req, res) => {
@@ -20,6 +28,8 @@ export const register = async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      phone: user.phone,
+      profilePic: user.profilePic || "",
       token: generateToken(user),
     });
   } catch (error) {
@@ -41,6 +51,8 @@ export const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        phone: user.phone,
+        profilePic: user.profilePic || "",
         token: generateToken(user),
       });
     } else {
@@ -51,9 +63,15 @@ export const login = async (req, res) => {
   }
 };
 
-// 👤 Get user profile
+// 👤 Get user profile (fresh from DB)
 export const getProfile = async (req, res) => {
-  res.json(req.user);
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Server error" });
+  }
 };
 
 // ✏️ Update user profile
@@ -66,6 +84,11 @@ export const updateProfile = async (req, res) => {
     user.phone = req.body.phone || user.phone;
     if (req.body.password) user.password = req.body.password;
 
+    // ✅ If profilePic URL is passed (from Cloudinary frontend upload)
+    if (req.body.profilePic) {
+      user.profilePic = req.body.profilePic;
+    }
+
     const updated = await user.save();
 
     res.json({
@@ -73,6 +96,8 @@ export const updateProfile = async (req, res) => {
       name: updated.name,
       email: updated.email,
       role: updated.role,
+      phone: updated.phone,
+      profilePic: updated.profilePic || "",
       token: generateToken(updated),
     });
   } catch (error) {
@@ -80,7 +105,33 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+// 📸 Upload or update user profile photo (if using multer backend upload)
+export const updateProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
 
+    const result = await cloudinary.v2.uploader.upload(req.file.path, {
+      folder: "smart-pg/users",
+      resource_type: "image",
+    });
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    user.profilePic = result.secure_url;
+    await user.save();
+
+    res.json({
+      message: "Profile photo updated successfully",
+      profilePic: user.profilePic,
+    });
+  } catch (error) {
+    console.error("Photo upload error:", error);
+    res.status(500).json({ message: "Failed to upload photo" });
+  }
+};
 
 // 🔁 Forgot Password (Send OTP)
 export const forgotPassword = async (req, res) => {
@@ -90,17 +141,13 @@ export const forgotPassword = async (req, res) => {
 
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Hash OTP before saving for security
     const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
 
     user.resetPasswordOTP = hashedOTP;
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 min expiry
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    // Send email
     await sendEmail({
       to: user.email,
       subject: "Smart PG Management - Password Reset OTP",
@@ -122,7 +169,6 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-
 // ✅ Verify OTP & Reset Password
 export const resetPassword = async (req, res) => {
   try {
@@ -134,7 +180,6 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "No OTP requested" });
     }
 
-    // Hash entered OTP and compare
     const hashedOTP = crypto.createHash("sha256").update(otp).digest("hex");
 
     if (hashedOTP !== user.resetPasswordOTP)
@@ -143,7 +188,6 @@ export const resetPassword = async (req, res) => {
     if (user.resetPasswordExpire < Date.now())
       return res.status(400).json({ message: "OTP expired" });
 
-    // Set new password
     user.password = newPassword;
     user.resetPasswordOTP = undefined;
     user.resetPasswordExpire = undefined;

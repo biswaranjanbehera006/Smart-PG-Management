@@ -5,6 +5,7 @@ import {
   getAllBookings,
   cancelBooking,
    downloadInvoice,
+   getBookingsByOwner,
 } from "../controllers/bookingController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 
@@ -35,6 +36,10 @@ router.get("/all", protect, admin, getAllBookings);
 // 📝 Cancel an existing booking
 router.put("/:id/cancel", protect, cancelBooking);
 
+// 📌 @route   GET /api/bookings/owner
+// 👤 @access  Private (Owner)
+// 📝 Get all bookings for PGs owned by logged-in owner
+router.get("/owner", protect, getBookingsByOwner);
 
 
 

@@ -9,17 +9,27 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
     phone: { type: String },
 
+    // 🖼️ Profile picture field for Cloudinary uploads
+    profilePic: {
+      type: String,
+      default: "https://cdn-icons-png.flaticon.com/512/149/149071.png",
+    },
+
     // 🧭 Role-based access
-    role: { type: String, enum: ["tenant", "owner", "admin"], default: "tenant" },
+    role: {
+      type: String,
+      enum: ["tenant", "owner", "admin"],
+      default: "tenant",
+    },
 
     // 🚫 Admin controls
     isBlocked: { type: Boolean, default: false },
 
-    // 🔐 OTP for password reset (✅ Field names updated to match authController.js)
-    resetPasswordOTP: { type: String },     // ⬅️ was resetOTP → renamed for controller compatibility
-    resetPasswordExpire: { type: Date },    // ⬅️ was otpExpires → renamed for controller compatibility
+    // 🔐 OTP for password reset
+    resetPasswordOTP: { type: String },
+    resetPasswordExpire: { type: Date },
 
-    // 🧾 Optional email verification (for future expansion)
+    // 🧾 Optional email verification (for future)
     isVerified: { type: Boolean, default: false },
     verificationOTP: { type: String },
     verificationExpires: { type: Date },
