@@ -4,28 +4,48 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-/* 🔧 Configure Cloudinary */
+/* ======================================================
+   ☁️ Configure Cloudinary
+   ====================================================== */
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+/* ======================================================
+   📦 Get All PGs
+   ====================================================== */
 /**
- * 📄 Get all active PGs
+ * 📄 Fetch all PG listings
+ * - Admin → sees all PGs (active + inactive)
+ * - Other users → sees only active PGs
+ * - Includes owner info
  */
 export const getPGs = async (req, res) => {
   try {
-    const pgs = await PG.find({ status: "active" }).limit(100);
+    let query = { status: "active" };
+
+    // ✅ If logged-in admin, show all PGs (not just active ones)
+    if (req.user && req.user.role === "admin") {
+      query = {}; // show everything
+    }
+
+    // ✅ Populate owner info (name, email, phone)
+    const pgs = await PG.find(query)
+      .populate("ownerId", "name email phone")
+      .limit(100);
+
     res.json(pgs);
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error("❌ Error fetching PGs:", error);
+    res.status(500).json({ message: "Error fetching PGs", error: error.message });
   }
 };
 
-/**
- * 🔍 Get PG by ID
- */
+/* ======================================================
+   🔍 Get Single PG by ID
+   ====================================================== */
 export const getPGById = async (req, res) => {
   try {
     const pg = await PG.findById(req.params.id).populate("ownerId", "name email phone");
@@ -36,20 +56,16 @@ export const getPGById = async (req, res) => {
   }
 };
 
-/**
- * ➕ Create PG (for PG Owner)
- * - Allows uploading images to Cloudinary
- * - Saves Cloudinary URLs to DB
- */
+/* ======================================================
+   ➕ Create PG (Owner Only)
+   ====================================================== */
 export const createPG = async (req, res) => {
   try {
     const data = req.body;
     data.ownerId = req.user._id;
 
-    // 🖼️ Handle image upload (if provided)
+    // 📸 Upload images to Cloudinary
     let imageUrls = [];
-
-    // Check if files are uploaded
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
         const result = await cloudinary.uploader.upload(file.path, {
@@ -58,7 +74,6 @@ export const createPG = async (req, res) => {
         imageUrls.push(result.secure_url);
       }
     }
-
     data.images = imageUrls;
 
     const pg = await PG.create(data);
@@ -69,9 +84,9 @@ export const createPG = async (req, res) => {
   }
 };
 
-/**
- * ✏️ Update PG (Owner/Admin)
- */
+/* ======================================================
+   ✏️ Update PG (Owner or Admin)
+   ====================================================== */
 export const updatePG = async (req, res) => {
   try {
     const pg = await PG.findById(req.params.id);
@@ -81,7 +96,7 @@ export const updatePG = async (req, res) => {
       return res.status(403).json({ message: "Not authorized" });
     }
 
-    // 🖼️ Handle image updates (optional)
+    // 🖼️ If new images uploaded
     if (req.files && req.files.length > 0) {
       let imageUrls = [];
       for (const file of req.files) {
@@ -101,9 +116,9 @@ export const updatePG = async (req, res) => {
   }
 };
 
-/**
- * ❌ Delete PG (Owner/Admin)
- */
+/* ======================================================
+   ❌ Delete PG (Owner or Admin)
+   ====================================================== */
 export const deletePG = async (req, res) => {
   try {
     const pg = await PG.findById(req.params.id);

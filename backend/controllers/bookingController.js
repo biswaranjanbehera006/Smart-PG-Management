@@ -217,6 +217,31 @@ const sendBookingEmail = async (toEmail, booking, pg, invoicePath, role) => {
   await transporter.sendMail(mailOptions);
 };
 
+
+// 🧾 Get all bookings for a specific PG Owner
+export const getBookingsByOwner = async (req, res) => {
+  try {
+    const ownerId = req.user._id;
+
+    // Find all PGs owned by this owner
+    const ownerPGs = await PG.find({ ownerId });
+    const pgIds = ownerPGs.map((pg) => pg._id);
+
+    // Find all bookings for those PGs
+    const bookings = await Booking.find({ pgId: { $in: pgIds } })
+      .populate("pgId", "name city rent ownerId")
+      .populate("userId", "name email phone");
+
+    res.status(200).json(bookings);
+  } catch (error) {
+    console.error("Error fetching owner bookings:", error);
+    res.status(500).json({ message: "Failed to fetch owner bookings" });
+  }
+};
+
+
+
+
 //
 // 🧾 Helper: Generate PDF Invoice
 //

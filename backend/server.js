@@ -11,6 +11,8 @@ import bookingRoutes from "./routes/bookingRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 
+import feedbackRoutes from "./routes/feedbackRoutes.js";
+
 // Import Error Middleware
 import { errorHandler } from "./middleware/errorMiddleware.js";
 
@@ -34,6 +36,7 @@ app.use("/api/pg", pgRoutes);            // PG CRUD
 app.use("/api/bookings", bookingRoutes); // Booking management
 app.use("/api/payments", paymentRoutes); // Payment routes
 app.use("/api/admin", adminRoutes);      //admin routes
+app.use("/api/feedback", feedbackRoutes);
 
 // ====== Root Route ======
 app.get("/", (req, res) => {
